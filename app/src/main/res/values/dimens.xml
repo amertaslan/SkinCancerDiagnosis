@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="zero_dp">0dp</dimen>
+    <dimen name="small_point">4dp</dimen>
+    <dimen name="medium_point">8dp</dimen>
+    <dimen name="large_point">12dp</dimen>
+    <dimen name="x_large_point">16dp</dimen>
+    <dimen name="xx_large_point">20dp</dimen>
+    <dimen name="xxx_large_point">24dp</dimen>
+    <dimen name="xxxx_large_point">32dp</dimen>
+    <dimen name="icon_large_point">120dp</dimen>
+
+    <dimen name="regular_text_size">16sp</dimen>
+    <dimen name="title_text_size">18sp</dimen>
+</resources>
