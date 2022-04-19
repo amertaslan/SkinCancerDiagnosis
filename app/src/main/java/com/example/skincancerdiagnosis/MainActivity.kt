@@ -15,7 +15,8 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val GET_FROM_CAMERA = 1
         const val GET_FROM_GALLERY = 2
-        const val IMAGE_SIZE = 224
+        const val IMAGE_SIZE_TO_TEST = 224
+        const val IMAGE_SIZE_TO_SHOW = 896
     }
 
     private lateinit var thumbnail: Bitmap
@@ -51,7 +52,7 @@ class MainActivity : AppCompatActivity() {
         val selectedImage: Uri = data?.data!!
         try {
             thumbnail = MediaStore.Images.Media.getBitmap(this.contentResolver, selectedImage)
-            val resizedImage = Bitmap.createScaledBitmap(thumbnail, IMAGE_SIZE, IMAGE_SIZE, false)
+            goToResultActivity(createImageByteArray(thumbnail, IMAGE_SIZE_TO_TEST), createImageByteArray(thumbnail, IMAGE_SIZE_TO_SHOW))
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -60,22 +61,25 @@ class MainActivity : AppCompatActivity() {
     private fun runOnCameraUpload(data: Intent?) {
         try {
             thumbnail = data?.extras?.get("data") as Bitmap
-            val imageToTrain = Bitmap.createScaledBitmap(thumbnail, IMAGE_SIZE, IMAGE_SIZE, false)
-            val stream = ByteArrayOutputStream()
-            imageToTrain.compress(Bitmap.CompressFormat.PNG, 100, stream)
-            val byteArrayToTrainImage: ByteArray = stream.toByteArray()
-
-            val imageToShow = data.extras?.get("data") as Bitmap
-            val streamToShow = ByteArrayOutputStream()
-            imageToShow.compress(Bitmap.CompressFormat.PNG, 100, streamToShow)
-            val byteArrayToShowImage: ByteArray = streamToShow.toByteArray()
-
-            val intent = Intent(this, ResultActivity::class.java)
-            intent.putExtra("imageToTest", byteArrayToTrainImage)
-            intent.putExtra("imageToShow", byteArrayToShowImage)
-            startActivity(intent)
+            goToResultActivity(createImageByteArray(thumbnail, IMAGE_SIZE_TO_TEST), createImageByteArray(thumbnail, IMAGE_SIZE_TO_SHOW))
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    private fun resizeImage(image: Bitmap, imageSize: Int): Bitmap = Bitmap.createScaledBitmap(image, imageSize, imageSize, false)
+
+    private fun createImageByteArray(image: Bitmap, imageSize: Int): ByteArray {
+        val imageToByteArray = resizeImage(image, imageSize)
+        val stream = ByteArrayOutputStream()
+        imageToByteArray.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        return stream.toByteArray()
+    }
+
+    private fun goToResultActivity(imageToTest: ByteArray, imageToShow: ByteArray) {
+        val intent = Intent(this, ResultActivity::class.java)
+        intent.putExtra("imageToTest", imageToTest)
+        intent.putExtra("imageToShow", imageToShow)
+        startActivity(intent)
     }
 }
