@@ -60,11 +60,20 @@ class MainActivity : AppCompatActivity() {
     private fun runOnCameraUpload(data: Intent?) {
         try {
             thumbnail = data?.extras?.get("data") as Bitmap
-            val resizedImage = Bitmap.createScaledBitmap(thumbnail, IMAGE_SIZE, IMAGE_SIZE, false)
-            binding.cameraIconImageview.setImageBitmap(resizedImage)
+            val imageToTrain = Bitmap.createScaledBitmap(thumbnail, IMAGE_SIZE, IMAGE_SIZE, false)
             val stream = ByteArrayOutputStream()
-            resizedImage.compress(Bitmap.CompressFormat.PNG, 100, stream)
-            val byteArray: ByteArray = stream.toByteArray()
+            imageToTrain.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            val byteArrayToTrainImage: ByteArray = stream.toByteArray()
+
+            val imageToShow = data.extras?.get("data") as Bitmap
+            val streamToShow = ByteArrayOutputStream()
+            imageToShow.compress(Bitmap.CompressFormat.PNG, 100, streamToShow)
+            val byteArrayToShowImage: ByteArray = streamToShow.toByteArray()
+
+            val intent = Intent(this, ResultActivity::class.java)
+            intent.putExtra("imageToTest", byteArrayToTrainImage)
+            intent.putExtra("imageToShow", byteArrayToShowImage)
+            startActivity(intent)
         } catch (e: Exception) {
             e.printStackTrace()
         }
