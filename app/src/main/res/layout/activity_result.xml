@@ -5,7 +5,8 @@
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:context=".ResultActivity">
+        tools:context=".ResultActivity"
+        android:background="@color/deep_purple_200_light">
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/result_card"
