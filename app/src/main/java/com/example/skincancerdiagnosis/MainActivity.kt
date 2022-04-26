@@ -4,11 +4,15 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.provider.MediaStore
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import com.example.skincancerdiagnosis.databinding.ActivityMainBinding
+import com.theartofdev.edmodo.cropper.CropImage
+import com.theartofdev.edmodo.cropper.CropImageView
 import java.io.ByteArrayOutputStream
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
@@ -30,7 +34,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun initializeListeners() {
         binding.openCameraCard.setOnClickListener {
-            startActivityForResult(Intent(MediaStore.ACTION_IMAGE_CAPTURE), GET_FROM_CAMERA)
+            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            val file = File(this.externalCacheDir, System.currentTimeMillis().toString() + ".jpg")
+            val uri = Uri.fromFile(file)
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, uri)
+            startActivityForResult(intent, GET_FROM_CAMERA)
         }
 
         binding.openGalleryCard.setOnClickListener {
@@ -42,11 +50,39 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == RESULT_OK) {
             when (requestCode) {
-                GET_FROM_GALLERY -> { runOnGalleryUpload(data) }
-                GET_FROM_CAMERA -> { runOnCameraUpload(data) }
+                GET_FROM_GALLERY -> { getCroppedImage(data) }
+                GET_FROM_CAMERA -> { getCroppedImage(data) }
+                CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE -> { runOnCropImage(data) }
             }
         }
     }
+
+    private fun runOnCropImage(data: Intent?) {
+        try {
+            thumbnail = MediaStore.Images.Media.getBitmap(this.contentResolver, data?.data!!)
+            goToResultActivity(createImageByteArray(thumbnail))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun getCroppedImage(data: Intent?) {
+        try {
+            data?.data?.let {
+                launchImageCrop(it)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun launchImageCrop(imageUri: Uri) {
+        CropImage.activity(imageUri)
+            .setGuidelines(CropImageView.Guidelines.ON)
+            .start(this);
+    }
+
+    /*
 
     private fun runOnGalleryUpload(data: Intent?) {
         val selectedImage: Uri = data?.data!!
@@ -67,19 +103,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    */
+
     private fun resizeImage(image: Bitmap, imageSize: Int): Bitmap = Bitmap.createScaledBitmap(image, imageSize, imageSize, false)
 
-    private fun createImageByteArray(image: Bitmap, imageSize: Int): ByteArray {
+    private fun createImageByteArray(image: Bitmap): ByteArray {
+        val stream = ByteArrayOutputStream()
+        image.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        return stream.toByteArray()
+        /*
         val imageToByteArray = resizeImage(image, imageSize)
         val stream = ByteArrayOutputStream()
         imageToByteArray.compress(Bitmap.CompressFormat.PNG, 100, stream)
         return stream.toByteArray()
+        */
     }
 
-    private fun goToResultActivity(imageToTest: ByteArray, imageToShow: ByteArray) {
+    private fun goToResultActivity(imageToTest: ByteArray) {
+        val intent = Intent(this, ResultActivity::class.java)
+        intent.putExtra("imageToTest", imageToTest)
+        startActivity(intent)
+        /*
         val intent = Intent(this, ResultActivity::class.java)
         intent.putExtra("imageToTest", imageToTest)
         intent.putExtra("imageToShow", imageToShow)
         startActivity(intent)
+        */
     }
 }

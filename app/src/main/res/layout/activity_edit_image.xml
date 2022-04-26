@@ -8,5 +8,7 @@
         tools:context=".EditImageActivity"
         android:background="@color/deep_purple_200_light">
 
+
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
