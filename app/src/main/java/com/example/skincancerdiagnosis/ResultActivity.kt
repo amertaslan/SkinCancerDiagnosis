@@ -1,8 +1,8 @@
 package com.example.skincancerdiagnosis
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import com.example.skincancerdiagnosis.databinding.ActivityResultBinding
@@ -10,16 +10,15 @@ import com.example.skincancerdiagnosis.databinding.ActivityResultBinding
 class ResultActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityResultBinding
-    private lateinit var bitmap: Bitmap
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_result)
 
         val extras = intent.extras
-        val byteArray = extras!!.getByteArray("imageToShow")
+        val uri = extras?.getParcelable<Uri>("image_uri")
 
-        bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray!!.size)
+        val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, uri)
 
         binding.resultImage.setImageBitmap(bitmap)
     }

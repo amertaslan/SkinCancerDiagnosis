@@ -28,9 +28,6 @@
                 android:resource="@xml/file_paths" />
         </provider>
         <activity
-            android:name=".EditImageActivity"
-            android:exported="false" />
-        <activity
             android:name=".ResultActivity"
             android:exported="false" />
         <activity
