@@ -69,24 +69,24 @@ class ResultActivity : AppCompatActivity() {
     private val FILTER_FACTOR = 0.4f
 
     private lateinit var binding: ActivityResultBinding
+    private lateinit var imageBitmap: Bitmap
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_result)
-
-        val extras = intent.extras
-        val uri = extras?.getParcelable<Uri>("image_uri")
-
-        val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, uri)
-        val resizedBitmap = resizeImage(bitmap, DIM_IMG_SIZE_X)
-        binding.resultImage.setImageBitmap(bitmap)
-
+        imageBitmap = getImage()
+        binding.resultImage.setImageBitmap(imageBitmap)
         imageClassifier(this)
-        val classOfImage = classifyFrame(resizedBitmap)
-        binding.resultText.text = classOfImage
+        binding.resultText.text = classifyFrame(resizeImage(imageBitmap))
     }
 
-    private fun resizeImage(image: Bitmap, imageSize: Int): Bitmap = Bitmap.createScaledBitmap(image, imageSize, imageSize, false)
+    private fun getImage(): Bitmap {
+        val extras = intent.extras
+        val uri = extras?.getParcelable<Uri>("image_uri")
+        return MediaStore.Images.Media.getBitmap(contentResolver, uri)
+    }
+
+    private fun resizeImage(image: Bitmap): Bitmap = Bitmap.createScaledBitmap(image, DIM_IMG_SIZE_X, DIM_IMG_SIZE_Y, false)
 
     private val sortedLabels: PriorityQueue<Map.Entry<String, Float>> = PriorityQueue(
         RESULTS_TO_SHOW
@@ -180,7 +180,6 @@ class ResultActivity : AppCompatActivity() {
         tflite?.close()
         tflite = null
     }
-
 
     private fun applyFilter() {
         val num_labels: Int = labelList!!.size
