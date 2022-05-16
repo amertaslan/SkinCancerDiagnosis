@@ -44,8 +44,8 @@ class ResultActivity : AppCompatActivity() {
     private val DIM_IMG_SIZE_X = 224
     private val DIM_IMG_SIZE_Y = 224
 
-    private val IMAGE_MEAN = 128
-    private val IMAGE_STD = 128.0f
+    private val IMAGE_MEAN = 0
+    private val IMAGE_STD = 1.0f
 
 
     /* Preallocated buffers for storing image data in. */
@@ -65,7 +65,7 @@ class ResultActivity : AppCompatActivity() {
 
     /** multi-stage low pass filter  */
     private var filterLabelProbArray: Array<FloatArray>? = null
-    private val FILTER_STAGES = 3
+    private val FILTER_STAGES = 1
     private val FILTER_FACTOR = 0.4f
 
     private lateinit var binding: ActivityResultBinding
@@ -170,7 +170,7 @@ class ResultActivity : AppCompatActivity() {
         val size: Int = sortedLabels.size
         for (i in 0 until size) {
             val (key, value) = sortedLabels.poll()
-            textToShow = String.format("\n%s: %4.2f", key, value) + textToShow
+            textToShow = String.format("\n%s: %4.6f", key, value) + textToShow
         }
         return textToShow
     }
@@ -217,9 +217,6 @@ class ResultActivity : AppCompatActivity() {
             TAG,
             "Timecost to run model inference: " + (endTime - startTime).toString()
         )
-
-        // smooth the results
-        applyFilter()
 
         // print the results
         var textToShow = printTopKLabels()
