@@ -21,7 +21,6 @@ import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 import java.util.*
 
-
 class ResultActivity : AppCompatActivity() {
 
     /** Tag for the [Log].  */
@@ -41,15 +40,15 @@ class ResultActivity : AppCompatActivity() {
 
     private val DIM_PIXEL_SIZE = 3
 
-    private val DIM_IMG_SIZE_X = 224
-    private val DIM_IMG_SIZE_Y = 224
+    private val DIM_IMG_SIZE = 224
 
     private val IMAGE_MEAN = 0
     private val IMAGE_STD = 1.0f
 
+    private val IMG_SIZE_TO_DISPLAY = 900
 
     /* Preallocated buffers for storing image data in. */
-    private val intValues = IntArray(DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y)
+    private val intValues = IntArray(DIM_IMG_SIZE * DIM_IMG_SIZE)
 
     /** An instance of the driver class to run model inference with Tensorflow Lite.  */
     private var tflite: Interpreter? = null
@@ -66,7 +65,6 @@ class ResultActivity : AppCompatActivity() {
     /** multi-stage low pass filter  */
     private var filterLabelProbArray: Array<FloatArray>? = null
     private val FILTER_STAGES = 1
-    private val FILTER_FACTOR = 0.4f
 
     private lateinit var binding: ActivityResultBinding
     private lateinit var imageBitmap: Bitmap
@@ -75,9 +73,9 @@ class ResultActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_result)
         imageBitmap = getImage()
-        binding.resultImage.setImageBitmap(imageBitmap)
+        binding.resultImage.setImageBitmap(resizeImage(imageBitmap, IMG_SIZE_TO_DISPLAY))
         imageClassifier(this)
-        binding.resultText.text = classifyFrame(resizeImage(imageBitmap))
+        binding.resultText.text = classifyFrame(resizeImage(imageBitmap, DIM_IMG_SIZE))
     }
 
     private fun getImage(): Bitmap {
@@ -86,7 +84,7 @@ class ResultActivity : AppCompatActivity() {
         return MediaStore.Images.Media.getBitmap(contentResolver, uri)
     }
 
-    private fun resizeImage(image: Bitmap): Bitmap = Bitmap.createScaledBitmap(image, DIM_IMG_SIZE_X, DIM_IMG_SIZE_Y, false)
+    private fun resizeImage(image: Bitmap, imageSize: Int): Bitmap = Bitmap.createScaledBitmap(image, imageSize, imageSize, false)
 
     private val sortedLabels: PriorityQueue<Map.Entry<String, Float>> = PriorityQueue(
         RESULTS_TO_SHOW
@@ -123,30 +121,21 @@ class ResultActivity : AppCompatActivity() {
         bitmap.getPixels(intValues, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
         // Convert the image to floating point.
         var pixel = 0
-        val startTime = SystemClock.uptimeMillis()
-        for (i in 0 until DIM_IMG_SIZE_X) {
-            for (j in 0 until DIM_IMG_SIZE_Y) {
+        for (i in 0 until DIM_IMG_SIZE) {
+            for (j in 0 until DIM_IMG_SIZE) {
                 val `val`: Int = intValues[pixel++]
                 imgData!!.putFloat(((`val` shr 16 and 0xFF) - IMAGE_MEAN) / IMAGE_STD)
                 imgData!!.putFloat(((`val` shr 8 and 0xFF) - IMAGE_MEAN) / IMAGE_STD)
                 imgData!!.putFloat(((`val` and 0xFF) - IMAGE_MEAN) / IMAGE_STD)
             }
         }
-        val endTime = SystemClock.uptimeMillis()
-        val timeMillis = endTime - startTime
-        Log.d(
-            TAG,
-            "Timecost to put values into ByteBuffer: " + timeMillis.toString() + "ms"
-        )
     }
 
     @Throws(IOException::class)
     fun imageClassifier(activity: Activity?) {
         tflite = Interpreter(loadModelFile(activity!!)!!)
         labelList = loadLabelList(activity)
-        imgData = ByteBuffer.allocateDirect(
-            4 * DIM_BATCH_SIZE * DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y * DIM_PIXEL_SIZE
-        )
+        imgData = ByteBuffer.allocateDirect(4 * DIM_BATCH_SIZE * DIM_IMG_SIZE * DIM_IMG_SIZE * DIM_PIXEL_SIZE)
         imgData!!.order(ByteOrder.nativeOrder())
         labelProbArray = Array(1) { FloatArray(labelList!!.size) }
         filterLabelProbArray = Array(FILTER_STAGES) {
@@ -154,14 +143,11 @@ class ResultActivity : AppCompatActivity() {
                 labelList!!.size
             )
         }
-        Log.d(TAG, "Created a Tensorflow Lite Image Classifier.")
     }
 
     private fun printTopKLabels(): String {
         for (i in 0 until labelList!!.size) {
-            sortedLabels.add(
-                AbstractMap.SimpleEntry(labelList!![i], labelProbArray!![0][i])
-            )
+            sortedLabels.add(AbstractMap.SimpleEntry(labelList!![i], labelProbArray!![0][i]))
             if (sortedLabels.size > RESULTS_TO_SHOW) {
                 sortedLabels.poll()
             }
@@ -169,8 +155,9 @@ class ResultActivity : AppCompatActivity() {
         var textToShow = ""
         val size: Int = sortedLabels.size
         for (i in 0 until size) {
-            val (key, value) = sortedLabels.poll()
-            textToShow = String.format("\n%s: %4.6f", key, value) + textToShow
+            var (_, value) = sortedLabels.poll()
+            value *= 100.0f
+            textToShow = String.format("%4.2f", value) + textToShow
         }
         return textToShow
     }
@@ -181,46 +168,12 @@ class ResultActivity : AppCompatActivity() {
         tflite = null
     }
 
-    private fun applyFilter() {
-        val num_labels: Int = labelList!!.size
-
-        // Low pass filter `labelProbArray` into the first stage of the filter.
-        for (j in 0 until num_labels) {
-            filterLabelProbArray!![0][j] += FILTER_FACTOR * (labelProbArray!![0][j] -
-                    filterLabelProbArray!![0][j])
-        }
-        // Low pass filter each stage into the next.
-        for (i in 1 until FILTER_STAGES) {
-            for (j in 0 until num_labels) {
-                filterLabelProbArray!![0][j] += FILTER_FACTOR * (filterLabelProbArray!![i - 1][j] -
-                        filterLabelProbArray!![i][j])
-            }
-        }
-
-        // Copy the last stage filter output back to `labelProbArray`.
-        for (j in 0 until num_labels) {
-            labelProbArray!![0][j] = filterLabelProbArray!![FILTER_STAGES - 1][j]
-        }
-    }
-
     private fun classifyFrame(bitmap: Bitmap?): String {
         if (tflite == null) {
-            Log.e(TAG, "Image classifier has not been initialized; Skipped.")
             return "Uninitialized Classifier."
         }
         convertBitmapToByteBuffer(bitmap!!)
-        // Here's where the magic happens!!!
-        val startTime = SystemClock.uptimeMillis()
         tflite!!.run(imgData, labelProbArray)
-        val endTime = SystemClock.uptimeMillis()
-        Log.d(
-            TAG,
-            "Timecost to run model inference: " + (endTime - startTime).toString()
-        )
-
-        // print the results
-        var textToShow = printTopKLabels()
-        textToShow = (endTime - startTime).toString() + "ms" + textToShow
-        return textToShow
+        return "%" + printTopKLabels () + " " + resources.getString(R.string.result_text)
     }
 }
