@@ -3,5 +3,5 @@
     <string name="welcome_text">Hoşgeldiniz, uygulamayı kullanmak için bir fotoğraf çekin veya galerinizden bir fotoğraf seçin.</string>
     <string name="camera_text">Yeni bir fotoğraf çekin</string>
     <string name="gallery_text">Galeriden bir fotoğraf seçin.</string>
-    <string name="result_text">Sonuç</string>
+    <string name="result_text">probability of getting cancer.</string>
 </resources>
